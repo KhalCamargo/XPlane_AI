@@ -7,5 +7,6 @@ xls = xls.to_numpy()
 erroPitch = xls[:,0]
 cmdPitch = xls[:,1]
 
-print(erroPitch)
-print(cmdPitch)
+data = np.column_stack((erroPitch,cmdPitch))
+
+print(data)
