@@ -4,10 +4,33 @@ from matplotlib import pyplot as plt
 import pandas as pd
 import skfuzzy.control as ctrl
 
-xlsErro = pd.read_excel('Dados Tempestade Cirrus.xlsx', sheet_name='Planilha2', usecols = "X,AB")
-xlsdErro = pd.read_excel('Dados Tempestade Cirrus.xlsx', sheet_name='Planilha2', usecols = "Z,AB")
-xlsErro = xlsErro.to_numpy()
-xlsdErro = xlsdErro.to_numpy()
+# Gathering all data
+data = pd.read_excel('C:\\Workspace\\XPlane\\Dados USAR SO PRA PITCH 3.xlsx')
+data = data.drop(data.index[0:159]) #Removing n-first rows
+
+data2 = pd.read_excel('C:\\Workspace\\XPlane\\Dados USAR SO PRA PITCH 2.xlsx')
+data2 = data.drop(data.index[0:284]) #Removing n-first rows
+
+data3 = pd.read_excel('C:\\Workspace\\XPlane\\Dados USAR SO PRA PITCH.xlsx')
+data3 = data.drop(data.index[0:1003]) #Removing n-first rows
+
+# Appending data
+data = data.append(data2)
+data = data.append(data3)
+
+data = data.loc[(abs(data['   pitch,__deg '])) <= 15] #Selecting only pitch within range
+data = data.loc[:,'ErroPitch':]
+
+
+Erro_Cmd_Pitch = data.loc[:,['ErroPitch','CmdPitch']]
+Erro_Cmd_Pitch = Erro_Cmd_Pitch.to_numpy()
+
+dErro_Cmd_Pitch = data.loc[:,['dErroP','CmdPitch']]
+dErro_Cmd_Pitch = dErro_Cmd_Pitch.to_numpy()
+
+
+xlsErro = Erro_Cmd_Pitch
+xlsdErro = dErro_Cmd_Pitch
 
 erro = xlsErro[:,0]
 cmd = xlsErro[:,1]
@@ -28,7 +51,6 @@ n = numero de clusters
 m = valor  maior que 1
 error = criterio de parada
 metric = euclidiana
-
 outputs:
 cntr= centro de cada cluster
 u = matriz de saida com graus dew pertinencia
@@ -49,7 +71,6 @@ ax3.legend()
 plt.show()
 
 """ Controlador:
-
 NL-negative large
 NM-negative medium
 NS-negative small
