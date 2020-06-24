@@ -21,30 +21,39 @@ data = data.append(data3)
 data = data.loc[(abs(data['   pitch,__deg '])) <= 15] #Selecting only pitch within range
 data = data.loc[:,'ErroPitch':]
 
+######### ORIG CODE
+#Erro_Cmd_Pitch = data.loc[:,['ErroPitch','CmdPitch']]
+#Erro_Cmd_Pitch = Erro_Cmd_Pitch.to_numpy()
 
-Erro_Cmd_Pitch = data.loc[:,['ErroPitch','CmdPitch']]
-Erro_Cmd_Pitch = Erro_Cmd_Pitch.to_numpy()
-
-dErro_Cmd_Pitch = data.loc[:,['dErroP','CmdPitch']]
-dErro_Cmd_Pitch = dErro_Cmd_Pitch.to_numpy()
-
-
-xlsErro = Erro_Cmd_Pitch
-xlsdErro = dErro_Cmd_Pitch
-
-erro = xlsErro[:,0]
-cmd = xlsErro[:,1]
-
-derro = xlsdErro[:,0]
-cmddErro = xlsdErro[:,1]
+#dErro_Cmd_Pitch = data.loc[:,['dErroP','CmdPitch']]
+#dErro_Cmd_Pitch = dErro_Cmd_Pitch.to_numpy()
 
 
-data = np.column_stack((erro,cmd))
-data2 = np.column_stack((derro,cmddErro))
+#xlsErro = Erro_Cmd_Pitch
+#xlsdErro = dErro_Cmd_Pitch
+
+#erro = xlsErro[:,0]
+#cmd = xlsErro[:,1]
+
+#derro = xlsdErro[:,0]
+#cmddErro = xlsdErro[:,1]
+
+
+#data = np.column_stack((erro,cmd))
+#data2 = np.column_stack((derro,cmddErro))
+#n_clusters = 7
+
+#cntrError, uError, u0Error, dError, jmError, pError, fpcError = fuzz.cluster.cmeans(data.T, c=n_clusters, m=2, error=0.005, maxiter=1000, init=None)
+#cntrdError, udError, u0dError, ddError, jmdError, pdError, fpcdError = fuzz.cluster.cmeans(data2.T, c=n_clusters, m=2, error=0.005, maxiter=1000, init=None)
+############### END ORIG
+
+##### New Code
+datas = data.loc[:,['ErroPitch','dErroP','CmdPitch']]
+datas = datas.to_numpy()
 n_clusters = 7
+cntrError, uError, u0Error, dError, jmError, pError, fpcError = fuzz.cluster.cmeans(datas.T, c=n_clusters, m=2, error=0.005, maxiter=1000, init=None)
+##### End New Code
 
-cntrError, uError, u0Error, dError, jmError, pError, fpcError = fuzz.cluster.cmeans(data.T, c=n_clusters, m=2, error=0.005, maxiter=1000, init=None)
-cntrdError, udError, u0dError, ddError, jmdError, pdError, fpcdError = fuzz.cluster.cmeans(data2.T, c=n_clusters, m=2, error=0.005, maxiter=1000, init=None)
 '''
 inputs:
 n = numero de clusters
