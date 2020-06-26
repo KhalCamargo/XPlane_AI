@@ -5,13 +5,13 @@ import pandas as pd
 import skfuzzy.control as ctrl
 
 # Gathering all data
-data = pd.read_excel('Dados USAR SO PRA PITCH 3.xlsx')
+data = pd.read_excel('C:\\Workspace\\XPlane\\Dados USAR SO PRA PITCH 3.xlsx')
 data = data.drop(data.index[0:159]) #Removing n-first rows
 
-data2 = pd.read_excel('Dados USAR SO PRA PITCH 2.xlsx')
+data2 = pd.read_excel('C:\\Workspace\\XPlane\\Dados USAR SO PRA PITCH 2.xlsx')
 data2 = data.drop(data.index[0:284]) #Removing n-first rows
 
-data3 = pd.read_excel('Dados USAR SO PRA PITCH.xlsx')
+data3 = pd.read_excel('C:\\Workspace\\XPlane\\Dados USAR SO PRA PITCH.xlsx')
 data3 = data.drop(data.index[0:1003]) #Removing n-first rows
 
 # Appending data
@@ -66,15 +66,21 @@ u = matriz de saida com graus dew pertinencia
 '''
 cluster_membership = np.argmax(uError, axis=0)
 
-fig3, ax3 = plt.subplots()
+
+fig3 = plt.figure()
+ax3 = fig3.add_subplot(111, projection='3d')
+
 ax3.set_title('Trained Model')
+
+
 for j in range(n_clusters):
-    ax3.plot(data2[cluster_membership == j, 0],
-             data2[cluster_membership == j, 1], 'o',
-             label='series ' + str(j))
+    ax3.scatter(datas[cluster_membership == j, 0],
+             datas[cluster_membership == j, 1],datas[cluster_membership == j, 2], 'o',
+             label='series ' + str(j),alpha=0.2)
+
 
 for pt in cntrError:
-    ax3.plot(pt[0], pt[1], 'rs')
+    ax3.scatter(pt[0], pt[1],pt[2], marker='s',c='r',s=15**2)
 
 ax3.legend()
 plt.show()
@@ -114,7 +120,7 @@ ErrorPitch['PL'] = fuzz.trapmf(ErrorPitch.universe, [cntrauxError[5], cntrauxErr
 
 cntrauxdError = []
 for i in range (0,7):
-    cntrauxdError.append(cntrError[i,0])
+    cntrauxdError.append(cntrdError[i,0])
 cntrauxdError.sort()
 
 dErrorPitch['NL'] = fuzz.trapmf(dErrorPitch.universe, [-90, -89, cntrauxdError[0], cntrauxdError[1]])
