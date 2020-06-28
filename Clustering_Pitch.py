@@ -49,9 +49,12 @@ data = data.loc[:,'ErroPitch':]
 
 ##### New Code
 datas = data.loc[:,['ErroPitch','dErroP','CmdPitch']]
-datas = datas.to_numpy()
+
+datas.loc[:,'ErroPitch':'dErroP'] = (datas.loc[:,'ErroPitch':'dErroP'] - datas.loc[:,'ErroPitch':'dErroP'].min())/(datas.loc[:,'ErroPitch':'dErroP'].max()-datas.loc[:,'ErroPitch':'dErroP'].min())
+
+datasnp = datas.to_numpy()
 n_clusters = 7
-cntrError, uError, u0Error, dError, jmError, pError, fpcError = fuzz.cluster.cmeans(datas.T, c=n_clusters, m=2, error=0.005, maxiter=1000, init=None)
+cntrError, uError, u0Error, dError, jmError, pError, fpcError = fuzz.cluster.cmeans(datasnp.T, c=n_clusters, m=2, error=0.005, maxiter=1000, init=None)
 ##### End New Code
 
 '''
@@ -74,14 +77,52 @@ ax3.set_title('Trained Model')
 
 
 for j in range(n_clusters):
-    ax3.scatter(datas[cluster_membership == j, 0],
-             datas[cluster_membership == j, 1],datas[cluster_membership == j, 2], 'o',
+    ax3.scatter(datasnp[cluster_membership == j, 0],
+             datasnp[cluster_membership == j, 1],datasnp[cluster_membership == j, 2], 'o',
              label='series ' + str(j),alpha=0.2)
 
 
 for pt in cntrError:
     ax3.scatter(pt[0], pt[1],pt[2], marker='s',c='r',s=15**2)
 
+## Create 2D cluster
+
+datas = datas.loc[:,['ErroPitch','dErroP']] #get normalized data
+datasnp = datas.to_numpy()
+n_clusters = 7
+cntrError, uError, u0Error, dError, jmError, pError, fpcError = fuzz.cluster.cmeans(datasnp.T, c=n_clusters, m=2, error=0.005, maxiter=1000, init=None)
+
+cluster_membership = np.argmax(uError, axis=0)
+
+
+fig4 = plt.figure()
+ax4 = fig4.add_subplot()
+
+ax4.set_title('Trained Model')
+
+
+for j in range(n_clusters):
+    ax4.plot(datasnp[cluster_membership == j, 0],
+             datasnp[cluster_membership == j, 1], 'o',
+             label='series ' + str(j),alpha=0.2)
+
+
+for pt in cntrError:
+    ax4.plot(pt[0], pt[1],'rs')
+
+## END Create 2D Cluster
+
+
+## Predict for new data
+
+toClass = [[-7.5,0.77]] #sample data to be analyzed (classified)
+toClass = (toClass -  datas.min())/(datas.max()-datas.min()) #Normalizing
+toClass = np.array(toClass)
+
+u, u0, d, jm, p, fpc = fuzz.cluster.cmeans_predict(
+    toClass.T,cntrError,m=2, error=0.005, maxiter=1000)
+
+## END Predict for new data
 ax3.legend()
 plt.show()
 
