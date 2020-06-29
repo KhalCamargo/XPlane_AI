@@ -21,32 +21,6 @@ data = data.append(data3)
 data = data.loc[(abs(data['   pitch,__deg '])) <= 15] #Selecting only pitch within range
 data = data.loc[:,'ErroPitch':]
 
-######### ORIG CODE
-#Erro_Cmd_Pitch = data.loc[:,['ErroPitch','CmdPitch']]
-#Erro_Cmd_Pitch = Erro_Cmd_Pitch.to_numpy()
-
-#dErro_Cmd_Pitch = data.loc[:,['dErroP','CmdPitch']]
-#dErro_Cmd_Pitch = dErro_Cmd_Pitch.to_numpy()
-
-
-#xlsErro = Erro_Cmd_Pitch
-#xlsdErro = dErro_Cmd_Pitch
-
-#erro = xlsErro[:,0]
-#cmd = xlsErro[:,1]
-
-#derro = xlsdErro[:,0]
-#cmddErro = xlsdErro[:,1]
-
-
-#data = np.column_stack((erro,cmd))
-#data2 = np.column_stack((derro,cmddErro))
-#n_clusters = 7
-
-#cntrError, uError, u0Error, dError, jmError, pError, fpcError = fuzz.cluster.cmeans(data.T, c=n_clusters, m=2, error=0.005, maxiter=1000, init=None)
-#cntrdError, udError, u0dError, ddError, jmdError, pdError, fpcdError = fuzz.cluster.cmeans(data2.T, c=n_clusters, m=2, error=0.005, maxiter=1000, init=None)
-############### END ORIG
-
 ##### New Code
 datas = data.loc[:,['ErroPitch','dErroP','CmdPitch']]
 
@@ -86,47 +60,72 @@ for pt in cntrError:
     ax3.scatter(pt[0], pt[1],pt[2], marker='s',c='r',s=15**2)
 
 ## Create 2D cluster
-
-datas = datas.loc[:,['ErroPitch','dErroP']] #get normalized data
-datasnp = datas.to_numpy()
-n_clusters = 7
-cntrError, uError, u0Error, dError, jmError, pError, fpcError = fuzz.cluster.cmeans(datasnp.T, c=n_clusters, m=2, error=0.005, maxiter=1000, init=None)
-
-cluster_membership = np.argmax(uError, axis=0)
-
-
-fig4 = plt.figure()
-ax4 = fig4.add_subplot()
-
-ax4.set_title('Trained Model')
-
-
-for j in range(n_clusters):
-    ax4.plot(datasnp[cluster_membership == j, 0],
-             datasnp[cluster_membership == j, 1], 'o',
-             label='series ' + str(j),alpha=0.2)
-
+fig4,axs = plt.subplots(3,1)
 
 for pt in cntrError:
-    ax4.plot(pt[0], pt[1],'rs')
+    for j in range(0,3):
+        axs[j].plot(pt[j],1,'ro')
 
+for j in range(0,3):
+    axs[j].set_ylim([0,1.02])
+
+axs[0].set_title("Pertinencia Unitária para Erro")
+axs[1].set_title("Pertinencia Unitária para Derivada do Erro")
+axs[2].set_title("Pertinencia Unitária para Saída")
 ## END Create 2D Cluster
 
 
 ## Predict for new data
 
-toClass = [[-7.5,0.77]] #sample data to be analyzed (classified)
-toClass = (toClass -  datas.min())/(datas.max()-datas.min()) #Normalizing
-toClass = np.array(toClass)
+#toClass = [[0,0]] #sample data to be analyzed (classified)
+#toClassDF = {'ErroPitch':[toClass[0][0]],
+#             'dErroP':[toClass[0][1]]}
+#toClass = pd.DataFrame(toClassDF,columns=['ErroPitch','dErroP'])
+#datas = data.loc[:,['ErroPitch','dErroP','CmdPitch']]
+#datas = datas.loc[:,['ErroPitch','dErroP']]
+#toClass = (toClass -  datas.min())/(datas.max()-datas.min()) #Normalizing
+## if data bigger than max -> saturate
+#toClass = toClass.to_numpy()
 
-u, u0, d, jm, p, fpc = fuzz.cluster.cmeans_predict(
-    toClass.T,cntrError,m=2, error=0.005, maxiter=1000)
+#ax4.plot(toClass[0][0],toClass[0][1],'bx')
+
+#u, u0, d, jm, p, fpc = fuzz.cluster.cmeans_predict(
+#    toClass.T,cntrError[:,0:2],m=2, error=0.005, maxiter=1000)
 
 ## END Predict for new data
 ax3.legend()
 plt.show()
 
-""" Controlador:
+cntrStick = []
+for i in range (0,n_clusters):
+    cntrStick.append(cntrError[i,2])
+cntrStick.sort()
+
+ElevStick = ctrl.Consequent(np.arange(-1, 1.001, 0.001), 'Elevation Stick')
+""" Saída Stick
+SL - Subir Large
+SM - Subir Medium
+SS - Subir Small
+M - Manter
+DS - Descer Small
+DM - Descer Medium
+DL - Descer Large
+"""
+ElevStick['SL'] = fuzz.trapmf(ElevStick.universe,[-2,-1,cntrStick[0],cntrStick[1]])
+ElevStick['SM'] = fuzz.trimf(ElevStick.universe,[cntrStick[0],cntrStick[1],cntrStick[2]])
+ElevStick['SS'] = fuzz.trimf(ElevStick.universe,[cntrStick[1],cntrStick[2],cntrStick[3]])
+ElevStick['M'] = fuzz.trimf(ElevStick.universe,[cntrStick[2],cntrStick[3],cntrStick[4]])
+ElevStick['DS'] = fuzz.trimf(ElevStick.universe,[cntrStick[3],cntrStick[4],cntrStick[5]])
+ElevStick['DM'] = fuzz.trimf(ElevStick.universe,[cntrStick[4],cntrStick[5],cntrStick[6]])
+ElevStick['DL'] = fuzz.trapmf(ElevStick.universe,[cntrStick[5],cntrStick[6],1,2])
+
+cntrErrorP = []
+for i in range (0,n_clusters):
+    cntrErrorP.append(cntrError[i,0])
+cntrErrorP.sort()
+
+Error = ctrl.Antecedent(np.arange(0,1.001,0.001),'Error')
+""" Entrada Cluster
 NL-negative large
 NM-negative medium
 NS-negative small
@@ -135,45 +134,77 @@ PS-positive small
 PM-positive medium
 PL-positive large
 """
+Error['NL'] = fuzz.trapmf(Error.universe,[-2,-1,cntrErrorP[0],cntrErrorP[1]])
+Error['NM'] = fuzz.trimf(Error.universe,[cntrErrorP[0],cntrErrorP[1],cntrErrorP[2]])
+Error['NS'] = fuzz.trimf(Error.universe,[cntrErrorP[1],cntrErrorP[2],cntrErrorP[3]])
+Error['AZ'] = fuzz.trimf(Error.universe,[cntrErrorP[2],cntrErrorP[3],cntrErrorP[4]])
+Error['PS'] = fuzz.trimf(Error.universe,[cntrErrorP[3],cntrErrorP[4],cntrErrorP[5]])
+Error['PM'] = fuzz.trimf(Error.universe,[cntrErrorP[4],cntrErrorP[5],cntrErrorP[6]])
+Error['PL'] = fuzz.trapmf(Error.universe,[cntrErrorP[5],cntrErrorP[6],1,2])
 
-# Create the three fuzzy variables - two inputs, one output
-ErrorPitch = ctrl.Antecedent(np.arange(-16, 16, 0.001), 'Error - Pitch')
-dErrorPitch = ctrl.Antecedent(np.arange(-5, 5, 0.001), 'Derivative Error - Pitch')
-ElevStick = ctrl.Consequent(np.arange(-0.3, 0.3, 0.01), 'Elevation Stick')
+cntrDErrorP = []
+for i in range (0,n_clusters):
+    cntrDErrorP.append(cntrError[i,1])
+cntrDErrorP.sort()
 
-# Auto-membership function population is possible with .automf(3, 5, or 7)
+dError = ctrl.Antecedent(np.arange(0,1.001,0.001),'Error Derivative')
 
-ElevStick.automf(3)
+dError['NL'] = fuzz.trapmf(dError.universe,[-2,-1,cntrDErrorP[0],cntrDErrorP[1]])
+dError['NM'] = fuzz.trimf(dError.universe,[cntrDErrorP[0],cntrDErrorP[1],cntrDErrorP[2]])
+dError['NS'] = fuzz.trimf(dError.universe,[cntrDErrorP[1],cntrDErrorP[2],cntrDErrorP[3]])
+dError['AZ'] = fuzz.trimf(dError.universe,[cntrDErrorP[2],cntrDErrorP[3],cntrDErrorP[4]])
+dError['PS'] = fuzz.trimf(dError.universe,[cntrDErrorP[3],cntrDErrorP[4],cntrDErrorP[5]])
+dError['PM'] = fuzz.trimf(dError.universe,[cntrDErrorP[4],cntrDErrorP[5],cntrDErrorP[6]])
+dError['PL'] = fuzz.trapmf(dError.universe,[cntrDErrorP[5],cntrDErrorP[6],1,2])
 
-cntrauxError = []
-for i in range (0,7):
-    cntrauxError.append(cntrError[i,0])
-cntrauxError.sort()
+#""" Controlador:
+#NL-negative large
+#NM-negative medium
+#NS-negative small
+#AZ-approximately zero
+#PS-positive small
+#PM-positive medium
+#PL-positive large
+#"""
 
-# Custom membership functions can be built interactively with a familiar,
-ErrorPitch['NL'] = fuzz.trapmf(ErrorPitch.universe, [-90, -89, cntrauxError[0], cntrauxError[1]])
-ErrorPitch['NM'] = fuzz.trimf(ErrorPitch.universe, [cntrauxError[0], cntrauxError[1], cntrauxError[2]])
-ErrorPitch['NS'] = fuzz.trimf(ErrorPitch.universe, [cntrauxError[1], cntrauxError[2], cntrauxError[3]])
-ErrorPitch['AZ'] = fuzz.trimf(ErrorPitch.universe, [cntrauxError[2], cntrauxError[3], cntrauxError[4]])
-ErrorPitch['PS'] = fuzz.trimf(ErrorPitch.universe, [cntrauxError[3], cntrauxError[4], cntrauxError[5]])
-ErrorPitch['PM'] = fuzz.trimf(ErrorPitch.universe, [cntrauxError[4], cntrauxError[5], cntrauxError[6]])
-ErrorPitch['PL'] = fuzz.trapmf(ErrorPitch.universe, [cntrauxError[5], cntrauxError[6], 89,90])
+## Create the three fuzzy variables - two inputs, one output
+#ErrorPitch = ctrl.Antecedent(np.arange(-16, 16, 0.001), 'Error - Pitch')
+#dErrorPitch = ctrl.Antecedent(np.arange(-5, 5, 0.001), 'Derivative Error - Pitch')
+#ElevStick = ctrl.Consequent(np.arange(-0.3, 0.3, 0.01), 'Elevation Stick')
 
-cntrauxdError = []
-for i in range (0,7):
-    cntrauxdError.append(cntrdError[i,0])
-cntrauxdError.sort()
+## Auto-membership function population is possible with .automf(3, 5, or 7)
 
-dErrorPitch['NL'] = fuzz.trapmf(dErrorPitch.universe, [-90, -89, cntrauxdError[0], cntrauxdError[1]])
-dErrorPitch['NM'] = fuzz.trimf(dErrorPitch.universe, [cntrauxdError[0], cntrauxdError[1], cntrauxdError[2]])
-dErrorPitch['NS'] = fuzz.trimf(dErrorPitch.universe, [cntrauxdError[1], cntrauxdError[2], cntrauxdError[3]])
-dErrorPitch['AZ'] = fuzz.trimf(dErrorPitch.universe, [cntrauxdError[2], cntrauxdError[3], cntrauxdError[4]])
-dErrorPitch['PS'] = fuzz.trimf(dErrorPitch.universe, [cntrauxdError[3], cntrauxdError[4], cntrauxdError[5]])
-dErrorPitch['PM'] = fuzz.trimf(dErrorPitch.universe, [cntrauxdError[4], cntrauxdError[5], cntrauxdError[6]])
-dErrorPitch['PL'] = fuzz.trapmf(dErrorPitch.universe, [cntrauxdError[5], cntrauxdError[6], 89,90])
+#ElevStick.automf(3)
+
+#cntrauxError = []
+#for i in range (0,7):
+#    cntrauxError.append(cntrError[i,0])
+#cntrauxError.sort()
+
+## Custom membership functions can be built interactively with a familiar,
+#ErrorPitch['NL'] = fuzz.trapmf(ErrorPitch.universe, [-90, -89, cntrauxError[0], cntrauxError[1]])
+#ErrorPitch['NM'] = fuzz.trimf(ErrorPitch.universe, [cntrauxError[0], cntrauxError[1], cntrauxError[2]])
+#ErrorPitch['NS'] = fuzz.trimf(ErrorPitch.universe, [cntrauxError[1], cntrauxError[2], cntrauxError[3]])
+#ErrorPitch['AZ'] = fuzz.trimf(ErrorPitch.universe, [cntrauxError[2], cntrauxError[3], cntrauxError[4]])
+#ErrorPitch['PS'] = fuzz.trimf(ErrorPitch.universe, [cntrauxError[3], cntrauxError[4], cntrauxError[5]])
+#ErrorPitch['PM'] = fuzz.trimf(ErrorPitch.universe, [cntrauxError[4], cntrauxError[5], cntrauxError[6]])
+#ErrorPitch['PL'] = fuzz.trapmf(ErrorPitch.universe, [cntrauxError[5], cntrauxError[6], 89,90])
+
+#cntrauxdError = []
+#for i in range (0,7):
+#    cntrauxdError.append(cntrdError[i,0])
+#cntrauxdError.sort()
+
+#dErrorPitch['NL'] = fuzz.trapmf(dErrorPitch.universe, [-90, -89, cntrauxdError[0], cntrauxdError[1]])
+#dErrorPitch['NM'] = fuzz.trimf(dErrorPitch.universe, [cntrauxdError[0], cntrauxdError[1], cntrauxdError[2]])
+#dErrorPitch['NS'] = fuzz.trimf(dErrorPitch.universe, [cntrauxdError[1], cntrauxdError[2], cntrauxdError[3]])
+#dErrorPitch['AZ'] = fuzz.trimf(dErrorPitch.universe, [cntrauxdError[2], cntrauxdError[3], cntrauxdError[4]])
+#dErrorPitch['PS'] = fuzz.trimf(dErrorPitch.universe, [cntrauxdError[3], cntrauxdError[4], cntrauxdError[5]])
+#dErrorPitch['PM'] = fuzz.trimf(dErrorPitch.universe, [cntrauxdError[4], cntrauxdError[5], cntrauxdError[6]])
+#dErrorPitch['PL'] = fuzz.trapmf(dErrorPitch.universe, [cntrauxdError[5], cntrauxdError[6], 89,90])
 
 
-ErrorPitch.view()
-dErrorPitch.view()
+Error.view()
+dError.view()
 ElevStick.view()
 plt.show()
