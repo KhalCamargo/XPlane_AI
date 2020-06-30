@@ -53,7 +53,7 @@ ax3.set_title('Trained Model')
 for j in range(n_clusters):
     ax3.scatter(datasnp[cluster_membership == j, 0],
              datasnp[cluster_membership == j, 1],datasnp[cluster_membership == j, 2], 'o',
-             label='series ' + str(j),alpha=0.2)
+             label='series ' + str(j),alpha=0.1)
 
 
 for pt in cntrError:
@@ -111,14 +111,23 @@ DS - Descer Small
 DM - Descer Medium
 DL - Descer Large
 """
-ElevStick['SL'] = fuzz.trapmf(ElevStick.universe,[-2,-1,cntrStick[0],cntrStick[1]])
-ElevStick['SM'] = fuzz.trimf(ElevStick.universe,[cntrStick[0],cntrStick[1],cntrStick[2]])
-ElevStick['SS'] = fuzz.trimf(ElevStick.universe,[cntrStick[1],cntrStick[2],cntrStick[3]])
+ElevStick['DL'] = fuzz.trapmf(ElevStick.universe,[-2,-1,cntrStick[0],cntrStick[1]])
+ElevStick['DM'] = fuzz.trimf(ElevStick.universe,[cntrStick[0],cntrStick[1],cntrStick[2]])
+ElevStick['DS'] = fuzz.trimf(ElevStick.universe,[cntrStick[1],cntrStick[2],cntrStick[3]])
 ElevStick['M'] = fuzz.trimf(ElevStick.universe,[cntrStick[2],cntrStick[3],cntrStick[4]])
-ElevStick['DS'] = fuzz.trimf(ElevStick.universe,[cntrStick[3],cntrStick[4],cntrStick[5]])
-ElevStick['DM'] = fuzz.trimf(ElevStick.universe,[cntrStick[4],cntrStick[5],cntrStick[6]])
-ElevStick['DL'] = fuzz.trapmf(ElevStick.universe,[cntrStick[5],cntrStick[6],1,2])
+ElevStick['SS'] = fuzz.trimf(ElevStick.universe,[cntrStick[3],cntrStick[4],cntrStick[5]])
+ElevStick['SM'] = fuzz.trimf(ElevStick.universe,[cntrStick[4],cntrStick[5],cntrStick[6]])
+ElevStick['SL'] = fuzz.trapmf(ElevStick.universe,[cntrStick[5],cntrStick[6],1,2])
 
+#Play
+#Cluster1 = ctrl.Antecedent(np.mgrid[-1:1.001:0.001,-1:1.001:0.001],'Cluster1')
+
+#Rule1 = ctrl.Rule(Cluster1,ElevStick['M'] )
+#sys = ctrl.ControlSystem([Rule1])
+#sim = ctrl.ControlSystemSimulation(sys)
+#
+
+## New Rules
 cntrErrorP = []
 for i in range (0,n_clusters):
     cntrErrorP.append(cntrError[i,0])
@@ -137,7 +146,7 @@ PL-positive large
 Error['NL'] = fuzz.trapmf(Error.universe,[-2,-1,cntrErrorP[0],cntrErrorP[1]])
 Error['NM'] = fuzz.trimf(Error.universe,[cntrErrorP[0],cntrErrorP[1],cntrErrorP[2]])
 Error['NS'] = fuzz.trimf(Error.universe,[cntrErrorP[1],cntrErrorP[2],cntrErrorP[3]])
-Error['AZ'] = fuzz.trimf(Error.universe,[cntrErrorP[2],cntrErrorP[3],cntrErrorP[4]])
+Error['Z'] = fuzz.trimf(Error.universe,[cntrErrorP[2],cntrErrorP[3],cntrErrorP[4]])
 Error['PS'] = fuzz.trimf(Error.universe,[cntrErrorP[3],cntrErrorP[4],cntrErrorP[5]])
 Error['PM'] = fuzz.trimf(Error.universe,[cntrErrorP[4],cntrErrorP[5],cntrErrorP[6]])
 Error['PL'] = fuzz.trapmf(Error.universe,[cntrErrorP[5],cntrErrorP[6],1,2])
@@ -152,10 +161,36 @@ dError = ctrl.Antecedent(np.arange(0,1.001,0.001),'Error Derivative')
 dError['NL'] = fuzz.trapmf(dError.universe,[-2,-1,cntrDErrorP[0],cntrDErrorP[1]])
 dError['NM'] = fuzz.trimf(dError.universe,[cntrDErrorP[0],cntrDErrorP[1],cntrDErrorP[2]])
 dError['NS'] = fuzz.trimf(dError.universe,[cntrDErrorP[1],cntrDErrorP[2],cntrDErrorP[3]])
-dError['AZ'] = fuzz.trimf(dError.universe,[cntrDErrorP[2],cntrDErrorP[3],cntrDErrorP[4]])
+dError['Z'] = fuzz.trimf(dError.universe,[cntrDErrorP[2],cntrDErrorP[3],cntrDErrorP[4]])
 dError['PS'] = fuzz.trimf(dError.universe,[cntrDErrorP[3],cntrDErrorP[4],cntrDErrorP[5]])
 dError['PM'] = fuzz.trimf(dError.universe,[cntrDErrorP[4],cntrDErrorP[5],cntrDErrorP[6]])
 dError['PL'] = fuzz.trapmf(dError.universe,[cntrDErrorP[5],cntrDErrorP[6],1,2])
+
+allRules = list()
+
+# Regras dos extremos
+#R1 = ctrl.Rule(Error['NL'],ElevStick['SL'])
+#allRules.append(R1)
+#R2 = ctrl.Rule(Error['PL'],ElevStick['DL'])
+#allRules.append(R2)
+R3 = ctrl.Rule(((Error['NM'] | Error['NS']) & (dError['NL'] | dError['NM'])) | (Error['Z'] & dError['NL']) | (Error['NM'] & dError['NS'] | Error['NL']),ElevStick['SL'])
+allRules.append(R3)
+R4 = ctrl.Rule(((Error['PM'] | Error['PS']) & (dError['PL'] | dError['PM'])) | (Error['Z'] & dError['PL']) | (Error['PM'] & dError['PS'] | Error['PL']),ElevStick['DL'])
+allRules.append(R4)
+R5 = ctrl.Rule((Error['PS'] & dError['NL']) | (Error['Z'] & dError['NM']) | (Error['NS'] & dError['NS']) | (Error['NM'] & dError['Z']),ElevStick['SM'])
+allRules.append(R5)
+R6 = ctrl.Rule((Error['PM'] & dError['NL']) | (Error['PS'] & dError['NM']) | (Error['Z'] & dError['NS']) | (Error['NS'] & dError['Z']) | (Error['NM'] & dError['PS']),ElevStick['SS'])
+allRules.append(R6)
+R7 = ctrl.Rule((Error['PM'] & dError['NM']) | (Error['PS'] & dError['NS']) | (Error['Z'] & dError['Z']) | (Error['NS'] & dError['PS']) | (Error['NM'] & dError['PM']),ElevStick['M'])
+allRules.append(R7)
+R8 = ctrl.Rule((Error['PM'] & dError['NS']) | (Error['PS'] & dError['Z']) | (Error['Z'] & dError['PS']) | (Error['NS'] & dError['PM']) | (Error['NM'] & dError['PL']),ElevStick['DS'])
+allRules.append(R8)
+R9 = ctrl.Rule((Error['PM'] & dError['Z']) | (Error['PS'] & dError['PS']) | (Error['Z'] & dError['PM']) | (Error['NS'] & dError['PL']),ElevStick['DM'])
+allRules.append(R9)
+
+sys = ctrl.ControlSystem(allRules)
+sim = ctrl.ControlSystemSimulation(sys)
+## END New Rules
 
 #""" Controlador:
 #NL-negative large
@@ -204,7 +239,34 @@ dError['PL'] = fuzz.trapmf(dError.universe,[cntrDErrorP[5],cntrDErrorP[6],1,2])
 #dErrorPitch['PL'] = fuzz.trapmf(dErrorPitch.universe, [cntrauxdError[5], cntrauxdError[6], 89,90])
 
 
+
+
+
+
 Error.view()
 dError.view()
 ElevStick.view()
+plt.show()
+
+
+"""Plot Surface"""
+x_sampled = np.arange(0, 1.001, 0.01)
+y_sampled = np.arange(0, 1.001, 0.01)
+
+x,y = np.meshgrid(x_sampled,y_sampled)
+z = np.empty_like(x)
+
+for j, yi in enumerate(y_sampled):
+    for i, xi in enumerate(x_sampled):
+        sim.input['Error'] = xi
+        sim.input['Error Derivative'] = yi
+        sim.compute()
+        z[j,i] = sim.output['Elevation Stick']
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+ax.set_xlabel("erro (graus)")
+ax.set_ylabel("derivada do erro (graus/segundo)")
+ax.set_zlabel("Elev Stick")
+surf = ax.plot_surface(x, y, z, rstride=1, cstride=1, cmap='viridis', linewidth=0.1)
 plt.show()
