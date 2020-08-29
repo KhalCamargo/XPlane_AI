@@ -13,7 +13,7 @@ from matplotlib import pyplot as plt
 import skfuzzy.control as ctrl
 import keyboard as k
 import tkinter as tk
-
+from simple_pid import PID
 
 # Definição das funções de pertinencia
 def trimf (x, a , b , c ):
@@ -402,7 +402,12 @@ Button2.deselect()
 
 #Referencia conforme valor na GUI
 C_REF = w1.get()
-FUZZY = True
+FUZZY = False
+USE_PID = True
+
+# Prepares PID controller (check these values -> what is the setpoint?)
+pid_pitch = PID( Kp = 0.0136, Ki = 0.0148, Kd = 0.004, setpoint = 20, sample_time = 0.01, output_limits = (None, None))
+pid_roll = PID( Kp = 0.0136, Ki = 0.0148, Kd = 0.004, setpoint = 20, sample_time = 0.01, output_limits = (None, None))
 
 #Pega os dados para Pitch e Roll
 datas, datasR = getData()
@@ -454,6 +459,11 @@ while (true):
                 commandr = 1
             elif commandr < -1:
                 commandr = -1
+        if USE_PID:
+            output_pitch = pid_pitch(current_value_pitch) # de onde vem o current value? é o errop ou o derrop?
+            output_roll = pid_roll(current_value_roll) # de onde vem o current value? é o error ou o derror?
+            commandp = output_pitch
+            commandr = output_roll
         else: #se nao fuzzy, proporcional
             k = 1
             nerro= normalizenewdata([[errop,derrop]],datas)
