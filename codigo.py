@@ -404,6 +404,7 @@ Button2.deselect()
 C_REF = w1.get()
 FUZZY = False
 USE_PID = True
+USE_BANGBANG = False
 
 # Prepares PID controller (check these values -> what is the setpoint?)
 pid_pitch = PID( Kp = 0.0136, Ki = 0.0148, Kd = 0.004, setpoint = 20, sample_time = 0.01, output_limits = (None, None))
@@ -464,6 +465,16 @@ while (true):
             output_roll = pid_roll(current_value_roll) # de onde vem o current value? é o error ou o derror?
             commandp = output_pitch
             commandr = output_roll
+        if USE_BANGBANG:
+            if current_value_pitch >  0:
+                commandp = -1
+            else if current_value_pitch < 0:
+                commandp = 1
+            
+            if current_value_roll > 0:
+                commandr = -1
+            else if current_value_roll < 0:
+                commandp = 1
         else: #se nao fuzzy, proporcional
             k = 1
             nerro= normalizenewdata([[errop,derrop]],datas)
